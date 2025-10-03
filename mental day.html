@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Mental Health Adventure!</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(-45deg, #ffbe0b, #fb5607, #ff006e, #8338ec, #3a86ff);
+            background-size: 400% 400%;
+            animation: gradient 20s ease infinite;
+            overflow-x: hidden;
+        }
+
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.35);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            animation: pop-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            transform: scale(0.8);
+            opacity: 0;
+        }
+        
+        @keyframes pop-in {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .card-reframe {
+            background: rgba(255, 232, 232, 0.6);
+        }
+
+        .btn {
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .btn:hover {
+            transform: translateY(-4px) scale(1.03);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+        }
+        
+        .mascot {
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        
+        .confetti-piece {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #f00;
+            opacity: 0;
+            animation: confetti-fall 3s ease-out forwards;
+        }
+
+        @keyframes confetti-fall {
+            0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        }
+
+        /* Breathing Animation */
+        .breathing-circle {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #8338ec, #3a86ff);
+            transition: transform 4s ease-in-out;
+        }
+        .breathing-circle.grow {
+            transform: scale(1.5);
+        }
+
+        /* Thought Catcher Game */
+        .word {
+            position: absolute;
+            padding: 8px 16px;
+            border-radius: 20px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+            animation: float-across 8s linear infinite;
+        }
+        @keyframes float-across {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(calc(100vw + 100%)); }
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+    
+    <div id="confetti-container" class="absolute top-0 left-0 w-full h-full pointer-events-none overflow-hidden z-50"></div>
+
+    <div id="main-container" class="w-full max-w-lg mx-auto text-center">
+        
+        <div id="mascot-container" class="mb-4 h-24">
+             <svg id="mascot" class="mascot w-24 h-24 mx-auto" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <radialGradient id="grad-body" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+                        <stop offset="0%" style="stop-color:#8338ec;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:#3a86ff;stop-opacity:1" />
+                    </radialGradient>
+                </defs>
+                <circle cx="50" cy="50" r="45" fill="url(#grad-body)"/>
+                <circle cx="35" cy="40" r="5" fill="white"/>
+                <circle cx="65" cy="40" r="5" fill="white"/>
+                <path id="mascot-mouth" d="M 35 65 Q 50 75 65 65" stroke="white" stroke-width="4" fill="none" stroke-linecap="round"/>
+            </svg>
+        </div>
+
+        <!-- Welcome Screen -->
+        <div id="welcome-screen" class="card p-8 rounded-2xl shadow-lg">
+            <h1 class="text-3xl font-extrabold text-gray-800 mb-2">Mental Health Adventure!</h1>
+            <p class="text-gray-700 font-medium mb-6">Let's play a quick game to see how you're feeling!</p>
+            <div class="space-y-4">
+                <input id="name-input" type="text" placeholder="What's your hero name?" class="w-full px-4 py-3 rounded-lg bg-white/60 text-gray-800 placeholder-gray-600 border-none focus:ring-2 focus:ring-pink-500 outline-none font-semibold">
+                <p id="name-error" class="text-red-600 font-semibold hidden">Every hero needs a name!</p>
+            </div>
+            <button id="start-btn" class="btn w-full mt-6 bg-pink-500 text-white font-bold py-3 px-6 rounded-lg shadow-lg">Start Adventure!</button>
+        </div>
+
+        <!-- Question Screen -->
+        <div id="question-screen" class="card p-8 rounded-2xl shadow-lg hidden">
+            <div class="w-full bg-white/40 rounded-full h-3 mb-6">
+                <div id="progress-bar" class="bg-yellow-400 h-3 rounded-full transition-all duration-500 ease-out" style="width: 0%"></div>
+            </div>
+            <h2 id="question-text" class="text-2xl font-bold text-gray-800 mb-6 min-h-[100px]"></h2>
+            <div id="answer-buttons" class="grid grid-cols-1 gap-4"></div>
+            <div id="reframe-message" class="text-gray-800 font-semibold mt-6 p-4 bg-yellow-100/60 rounded-lg hidden"></div>
+        </div>
+        
+        <!-- Breathing Game Screen -->
+        <div id="breathing-game-screen" class="card p-8 rounded-2xl shadow-lg hidden">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Time for a Power-Up!</h2>
+            <p class="text-gray-700 mb-8">Let's do a quick breathing exercise to relax and focus.</p>
+            <div class="flex justify-center items-center mb-8">
+                <div id="breathing-circle" class="breathing-circle"></div>
+            </div>
+            <p id="breathing-text" class="text-xl font-semibold text-gray-800">Get Ready...</p>
+        </div>
+
+        <!-- Thought Catcher Game Screen -->
+        <div id="thought-catcher-game-screen" class="card p-8 rounded-2xl shadow-lg hidden w-full max-w-xl">
+             <h2 class="text-2xl font-bold text-gray-800 mb-2">Mini-Game: Happy Thoughts!</h2>
+             <p class="text-gray-700 mb-4">Click on the happy words before they fly away!</p>
+             <div class="flex justify-between font-bold text-lg text-gray-800 mb-4">
+                 <span>Score: <span id="game-score">0</span></span>
+                 <span>Time: <span id="game-timer">15</span>s</span>
+             </div>
+             <div id="word-container" class="relative h-64 bg-white/30 rounded-lg overflow-hidden"></div>
+        </div>
+
+        <!-- Gratitude Jar Screen -->
+        <div id="gratitude-jar-screen" class="card p-8 rounded-2xl shadow-lg hidden">
+            <h2 class="text-2xl font-bold text-gray-800 mb-2">One Last Thing...</h2>
+            <p class="text-gray-700 mb-6">What is one small thing you're grateful for today?</p>
+            <svg class="mx-auto w-40 h-40 mb-4" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M30 95V40C30 20 70 20 70 40V95H30Z" fill="rgba(255,255,255,0.4)" stroke="#FFF" stroke-width="2"/><rect x="25" y="95" width="50" height="5" fill="rgba(255,255,255,0.6)" stroke="#FFF" stroke-width="2"/><rect x="40" y="15" width="20" height="5" fill="rgba(255,255,255,0.6)" stroke="#FFF" stroke-width="2"/></svg>
+            <div id="gratitude-list" class="text-pink-600 font-semibold mb-4"></div>
+            <input id="gratitude-input" type="text" placeholder="Type something here..." class="w-full px-4 py-3 rounded-lg bg-white/60 text-gray-800 placeholder-gray-600 border-none focus:ring-2 focus:ring-pink-500 outline-none font-semibold">
+            <button id="add-gratitude-btn" class="btn w-full mt-4 bg-pink-500 text-white font-bold py-3 px-6 rounded-lg shadow-lg">Add to Jar</button>
+            <button id="finish-gratitude-btn" class="btn w-full mt-2 bg-green-500 text-white font-bold py-3 px-6 rounded-lg shadow-lg">I'm Done!</button>
+        </div>
+
+        <!-- Final Screen -->
+        <div id="final-screen" class="card p-8 rounded-2xl shadow-lg hidden">
+            <h2 id="final-title" class="text-3xl font-extrabold text-gray-800 mb-4">Quest Complete, <span id="final-name"></span>!</h2>
+            <div id="final-message-section">
+                <p class="text-gray-700 mb-4">You did an amazing job! Remember, taking care of your mind is a superpower.</p>
+                <p class="text-gray-700 font-semibold bg-green-200/80 p-4 rounded-lg">Talking about your feelings is as brave as fighting a dragon. It's not a weakness, it's your secret power!</p>
+            </div>
+            
+            <div id="rating-section" class="mt-8">
+                 <p class="text-gray-800 font-semibold mb-3">How fun was this adventure?</p>
+                <div id="star-container" class="flex justify-center items-center space-x-2 text-4xl text-gray-400"></div>
+            </div>
+
+            <div id="low-rating-section" class="hidden mt-6">
+                 <p class="text-gray-800 mb-4">Oh, a tricky level! To make the next adventure even better, what was your favorite part?</p>
+                 <div class="flex flex-col space-y-3">
+                     <button onclick="handleLowRatingChoice()" class="btn bg-white/80 text-pink-600 font-bold py-3 px-6 rounded-lg">The fun questions!</button>
+                     <button onclick="handleLowRatingChoice()" class="btn bg-white/80 text-pink-600 font-bold py-3 px-6 rounded-lg">The cool mascot!</button>
+                 </div>
+            </div>
+
+            <div id="final-thanks-section" class="hidden mt-6 text-xl text-pink-600 font-bold">
+                 <p>Thanks for playing! You're awesome!</p>
+            </div>
+
+            <!-- Resources Section -->
+            <div class="mt-8">
+                <button id="show-resources-btn" class="btn bg-blue-500 text-white font-bold py-2 px-4 rounded-lg text-sm">Continue Your Adventure?</button>
+                <div id="resources-section" class="hidden mt-4 text-left text-gray-700 bg-white/40 p-4 rounded-lg">
+                    <h3 class="font-bold text-center mb-2">Helpful Places for Heroes!</h3>
+                    <ul class="list-disc list-inside space-y-1">
+                        <li><a href="https://www.childmind.org" target="_blank" class="text-blue-700 hover:underline">Child Mind Institute</a> - Great articles and guides.</li>
+                        <li><a href="https://kidshealth.org/en/kids/feeling/" target="_blank" class="text-blue-700 hover:underline">KidsHealth</a> - Info on feelings and emotions.</li>
+                        <li><a href="https://www.nimh.nih.gov/health/topics/child-and-adolescent-mental-health" target="_blank" class="text-blue-700 hover:underline">NIMH</a> - Resources for teens and kids.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const screens = {
+                welcome: document.getElementById('welcome-screen'),
+                question: document.getElementById('question-screen'),
+                final: document.getElementById('final-screen'),
+                breathing: document.getElementById('breathing-game-screen'),
+                thoughtCatcher: document.getElementById('thought-catcher-game-screen'),
+                gratitude: document.getElementById('gratitude-jar-screen'),
+            };
+            const mascotMouth = document.getElementById('mascot-mouth');
+            const nameInput = document.getElementById('name-input');
+            const nameError = document.getElementById('name-error');
+
+            let userName = '';
+            let currentQuestionIndex = 0;
+            let gameQuestions = [];
+            let gamesPlayed = { breathing: false, thoughtCatcher: false };
+            const TOTAL_QUESTIONS_IN_GAME = 12;
+
+            const allQuestions = [
+                // ... (Question pool remains the same)
+                 { question: "Hey {{name}}, if your mood was a cartoon character today, who would it be?", positiveAnswer: "SpongeBob (Happy!)", negativeAnswer: "Squidward (Grumpy...)", reframe: "Even Squidward has good days! What's one little thing that could make you feel even 1% more like SpongeBob?" },
+                { question: "Did you do something today that made you feel like a superhero?", positiveAnswer: "Yes, totally!", negativeAnswer: "Not yet", reframe: "That's okay! Even superheroes need rest. Your power might be resting and recharging for tomorrow's adventure!" },
+                { question: "Is your brain's 'weather forecast' sunny or cloudy right now?", positiveAnswer: "Bright and Sunny!", negativeAnswer: "A bit cloudy", reframe: "Clouds pass, {{name}}. Let's think of one happy thought to be a little ray of sunshine through the clouds." },
+                { question: "Have you laughed so hard your tummy hurt recently?", positiveAnswer: "Yes!", negativeAnswer: "Not in a while", reframe: "Laughter is a superpower! Maybe we can find a funny video or comic to test that power later." },
+                { question: "If you could give yourself a high-five for something today, what would it be for?", positiveAnswer: "Getting out of bed!", negativeAnswer: "Nothing really", reframe: "Just getting up is a HUGE win! High-five for that! *clap*" },
+                { question: "Are you feeling more like a sleepy kitten or an energetic puppy?", positiveAnswer: "Energetic Puppy!", negativeAnswer: "Sleepy Kitten", reframe: "Kittens are experts at relaxing. It sounds like your body is telling you to take a nice, cozy rest." },
+                { question: "Did you drink enough water today to be a happy little houseplant?", positiveAnswer: "Yes, I'm hydrated!", negativeAnswer: "Oops, I forgot", reframe: "Even a small sip is a great start! Let's go be a happy plant and have some water." },
+                { question: "Has anyone shared a smile with you today, {{name}}?", positiveAnswer: "Yes!", negativeAnswer: "Not that I remember", reframe: "Your own smile is super powerful! Try sharing it with someone, even yourself in the mirror." },
+                { question: "Do you feel like your 'social battery' is charged up?", positiveAnswer: "Fully charged!", negativeAnswer: "Running low", reframe: "It's super important to recharge. Some quiet time or a favorite solo activity sounds like a good plan." },
+                { question: "Was it easy to let go of a small mistake you made recently?", positiveAnswer: "Yep, all good!", negativeAnswer: "I keep thinking about it", reframe: "Mistakes are just level-up points in the game of life! You've learned something new. That's a win!" },
+                { question: "Have you moved your body today in a fun way, like dancing?", positiveAnswer: "Yes, I had a boogie!", negativeAnswer: "Not really", reframe: "A 1-minute dance party to your favorite song can totally change your day. Give it a try!" },
+                { question: "Do you feel like your thoughts are more like friendly butterflies or buzzing bees?", positiveAnswer: "Friendly butterflies", negativeAnswer: "Buzzing bees", reframe: "Let's help those bees calm down. One slow, deep breath can turn a buzz into a gentle float." },
+                { question: "Did you eat something yummy that made your taste buds happy?", positiveAnswer: "Yes, it was delicious!", negativeAnswer: "Not really", reframe: "Fueling your body is awesome! Let's think of one yummy, healthy snack we could have later." },
+                { question: "Do you feel proud of yourself for anything today, {{name}}?", positiveAnswer: "Yes, I do!", negativeAnswer: "I don't think so", reframe: "You're here, taking this check-in. That's something to be VERY proud of. Seriously." },
+                { question: "Are you looking forward to something soon?", positiveAnswer: "Yes, I can't wait!", negativeAnswer: "Not really", reframe: "Let's create something to look forward to! What's one tiny, fun thing we can plan for tomorrow?" },
+                { question: "If your feelings were a color, what bright and happy color would they be?", positiveAnswer: "Sunshine Yellow!", negativeAnswer: "Kind of grey", reframe: "Grey is a calm color, a resting color. Maybe we can add a little splash of another color by listening to a happy song." },
+                { question: "Have you given your brain a nice rest from screens today?", positiveAnswer: "Yes, I took a break!", negativeAnswer: "No, been busy", reframe: "Your brain needs to blink too! Let's try looking out a window for 60 seconds and see what we notice." },
+                { question: "Do you feel you have the power to solve a tricky problem if one comes up?", positiveAnswer: "Yes, I'm a great problem-solver!", negativeAnswer: "I'm not so sure", reframe: "Every great hero starts by asking for help. Your team (friends, family) is your biggest strength!" },
+                { question: "Did you say something kind to yourself today?", positiveAnswer: "Yes, I did!", negativeAnswer: "No", reframe: "Let's try it now. Say this out loud: 'I am doing a great job.' Because you are, {{name}}!" },
+                { question: "Do you feel your heart is full of happy sparkles right now?", positiveAnswer: "Totally full of sparkles!", negativeAnswer: "Just a few sparkles", reframe: "That's okay! Let's find one thing you're grateful for. Gratitude is the best sparkle-maker!" }
+            ];
+
+            function shuffleArray(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+            }
+            
+            function setMascotExpression(expression) {
+                if (expression === 'happy') {
+                    mascotMouth.setAttribute('d', 'M 35 60 Q 50 85 65 60');
+                    document.getElementById('mascot').style.transform = 'scale(1.1) rotate(5deg)';
+                } else if (expression === 'neutral') {
+                    mascotMouth.setAttribute('d', 'M 35 65 Q 50 75 65 65');
+                    document.getElementById('mascot').style.transform = 'scale(1) rotate(0deg)';
+                } else if (expression === 'thinking') {
+                     mascotMouth.setAttribute('d', 'M 35 70 L 65 70');
+                     document.getElementById('mascot').style.transform = 'scale(0.95) rotate(-5deg)';
+                }
+            }
+            
+            function showScreen(screenName) {
+                Object.values(screens).forEach(screen => screen.classList.add('hidden'));
+                const screenToShow = screens[screenName];
+                screenToShow.classList.remove('hidden');
+                screenToShow.style.animation = 'none';
+                screenToShow.offsetHeight;
+                screenToShow.style.animation = null; 
+            }
+
+            document.getElementById('start-btn').addEventListener('click', () => {
+                userName = nameInput.value.trim();
+                if (!userName) {
+                    nameError.classList.remove('hidden');
+                    nameInput.classList.add('ring-2', 'ring-red-500');
+                    return;
+                }
+                nameError.classList.add('hidden');
+                nameInput.classList.remove('ring-2', 'ring-red-500');
+                
+                shuffleArray(allQuestions);
+                gameQuestions = allQuestions.slice(0, TOTAL_QUESTIONS_IN_GAME);
+                
+                showScreen('question');
+                displayQuestion();
+            });
+
+            function displayQuestion() {
+                // Check for mini-games
+                if (currentQuestionIndex === 4 && !gamesPlayed.breathing) {
+                    gamesPlayed.breathing = true;
+                    startBreathingGame();
+                    return;
+                }
+                if (currentQuestionIndex === 8 && !gamesPlayed.thoughtCatcher) {
+                    gamesPlayed.thoughtCatcher = true;
+                    startThoughtCatcherGame();
+                    return;
+                }
+
+                setMascotExpression('neutral');
+                showScreen('question');
+                const qScreen = screens.question;
+                const reframeMsg = qScreen.querySelector('#reframe-message');
+                qScreen.classList.remove('card-reframe');
+                reframeMsg.classList.add('hidden');
+
+                if (currentQuestionIndex < gameQuestions.length) {
+                    const progress = ((currentQuestionIndex) / gameQuestions.length) * 100;
+                    qScreen.querySelector('#progress-bar').style.width = `${progress}%`;
+                    let q = gameQuestions[currentQuestionIndex];
+                    let personalizedQuestion = q.question.replace(/{{name}}/g, userName);
+                    qScreen.querySelector('#question-text').textContent = personalizedQuestion;
+                    const buttonsDiv = qScreen.querySelector('#answer-buttons');
+                    buttonsDiv.innerHTML = '';
+                    const positiveBtn = document.createElement('button');
+                    positiveBtn.textContent = q.positiveAnswer;
+                    positiveBtn.className = 'btn bg-green-500 text-white font-bold py-3 px-4 rounded-lg shadow-md';
+                    positiveBtn.onclick = handlePositiveAnswer;
+                    const negativeBtn = document.createElement('button');
+                    negativeBtn.textContent = q.negativeAnswer;
+                    negativeBtn.className = 'btn bg-red-400 text-white font-bold py-3 px-4 rounded-lg shadow-md';
+                    negativeBtn.onclick = handleNegativeAnswer;
+                    buttonsDiv.appendChild(positiveBtn);
+                    buttonsDiv.appendChild(negativeBtn);
+                } else {
+                    startGratitudeJar();
+                }
+            }
+
+            function handlePositiveAnswer() {
+                setMascotExpression('happy');
+                currentQuestionIndex++;
+                setTimeout(displayQuestion, 500);
+            }
+
+            function handleNegativeAnswer() {
+                setMascotExpression('thinking');
+                const q = gameQuestions[currentQuestionIndex];
+                const qScreen = screens.question;
+                const reframeMsg = qScreen.querySelector('#reframe-message');
+                qScreen.querySelector('#answer-buttons').innerHTML = '';
+                qScreen.classList.add('card-reframe');
+                reframeMsg.textContent = q.reframe.replace(/{{name}}/g, userName);
+                reframeMsg.classList.remove('hidden');
+                setTimeout(displayQuestion, 4500);
+            }
+
+            // --- MINIGAME: Breathing ---
+            function startBreathingGame() {
+                showScreen('breathing');
+                const circle = document.getElementById('breathing-circle');
+                const text = document.getElementById('breathing-text');
+                
+                setTimeout(() => {
+                    text.textContent = 'Breathe In...';
+                    circle.classList.add('grow');
+                }, 1000);
+
+                setTimeout(() => {
+                    text.textContent = 'Breathe Out...';
+                    circle.classList.remove('grow');
+                }, 5000);
+                
+                setTimeout(() => {
+                    text.textContent = 'Breathe In...';
+                    circle.classList.add('grow');
+                }, 9000);
+
+                setTimeout(() => {
+                    text.textContent = 'Breathe Out...';
+                    circle.classList.remove('grow');
+                }, 13000);
+
+                setTimeout(() => {
+                    text.textContent = 'Great job!';
+                }, 17000);
+
+                setTimeout(displayQuestion, 18000); // Resume questions
+            }
+            
+            // --- MINIGAME: Thought Catcher ---
+            function startThoughtCatcherGame() {
+                showScreen('thoughtCatcher');
+                let score = 0;
+                let timeLeft = 15;
+                const scoreDisplay = document.getElementById('game-score');
+                const timerDisplay = document.getElementById('game-timer');
+                const container = document.getElementById('word-container');
+                container.innerHTML = '';
+                scoreDisplay.textContent = score;
+                timerDisplay.textContent = timeLeft;
+
+                const positiveWords = ["Joy", "Hope", "Calm", "Happy", "Brave", "Kind", "Love"];
+                const negativeWords = ["Worry", "Sad", "Stress", "Fear"];
+
+                const gameInterval = setInterval(() => {
+                    const word = document.createElement('div');
+                    word.classList.add('word');
+                    const isPositive = Math.random() > 0.3;
+                    if (isPositive) {
+                        word.textContent = positiveWords[Math.floor(Math.random() * positiveWords.length)];
+                        word.style.backgroundColor = '#22c55e'; // green-500
+                        word.onclick = () => {
+                            score++;
+                            scoreDisplay.textContent = score;
+                            word.remove();
+                        };
+                    } else {
+                        word.textContent = negativeWords[Math.floor(Math.random() * negativeWords.length)];
+                        word.style.backgroundColor = '#ef4444'; // red-500
+                        word.onclick = () => word.remove();
+                    }
+                    word.style.top = `${Math.random() * 85}%`;
+                    word.style.animationDuration = `${Math.random() * 4 + 4}s`;
+                    container.appendChild(word);
+                }, 800);
+
+                const timerInterval = setInterval(() => {
+                    timeLeft--;
+                    timerDisplay.textContent = timeLeft;
+                    if (timeLeft <= 0) {
+                        clearInterval(gameInterval);
+                        clearInterval(timerInterval);
+                        container.innerHTML = `<p class="text-center text-2xl font-bold mt-20">Well done!</p>`;
+                        setTimeout(displayQuestion, 2000);
+                    }
+                }, 1000);
+            }
+
+            // --- ACTIVITY: Gratitude Jar ---
+            function startGratitudeJar() {
+                showScreen('gratitude');
+                document.getElementById('add-gratitude-btn').onclick = addGratitude;
+                document.getElementById('gratitude-input').onkeyup = (e) => { if(e.key === 'Enter') addGratitude(); };
+                document.getElementById('finish-gratitude-btn').onclick = showFinalScreen;
+            }
+
+            function addGratitude() {
+                const input = document.getElementById('gratitude-input');
+                const list = document.getElementById('gratitude-list');
+                if(input.value.trim()){
+                    const item = document.createElement('div');
+                    item.textContent = input.value.trim();
+                    list.appendChild(item);
+                    input.value = '';
+                    input.focus();
+                }
+            }
+
+            function triggerConfetti() {
+                // ... (Confetti logic remains the same)
+                 const container = document.getElementById('confetti-container');
+                const colors = ['#ffbe0b', '#fb5607', '#ff006e', '#8338ec', '#3a86ff'];
+                for (let i = 0; i < 100; i++) {
+                    const piece = document.createElement('div');
+                    piece.className = 'confetti-piece';
+                    piece.style.left = `${Math.random() * 100}vw`;
+                    piece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    piece.style.animationDelay = `${Math.random() * 2}s`;
+                    piece.style.transform = `scale(${Math.random() * 1.5 + 0.5})`;
+                    container.appendChild(piece);
+                    setTimeout(() => piece.remove(), 3000);
+                }
+            }
+
+            function showFinalScreen() {
+                setMascotExpression('happy');
+                showScreen('final');
+                document.getElementById('final-name').textContent = userName;
+                createStars();
+                setTimeout(triggerConfetti, 200);
+            }
+            
+            function createStars() {
+                // ... (Star logic remains the same)
+                const starContainer = document.getElementById('star-container');
+                starContainer.innerHTML = '';
+                for (let i = 1; i <= 5; i++) {
+                    const star = document.createElement('span');
+                    star.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-10 h-10 cursor-pointer transition-transform duration-200 hover:scale-125"><path fill-rule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.007z" clip-rule="evenodd" /></svg>`;
+                    star.dataset.value = i;
+                    star.addEventListener('mouseover', () => highlightStars(i));
+                    star.addEventListener('mouseleave', () => highlightStars(0));
+                    star.addEventListener('click', () => handleRating(i));
+                    starContainer.appendChild(star);
+                }
+            }
+            
+            function highlightStars(rating) {
+                // ... (Star highlight logic remains the same)
+                 starContainer.querySelectorAll('svg').forEach((star, index) => {
+                    star.classList.toggle('text-yellow-400', index < rating);
+                    star.classList.toggle('text-gray-400', index >= rating);
+                });
+            }
+
+            function handleRating(rating) {
+                // ... (Rating logic remains the same)
+                const ratingSection = document.getElementById('rating-section');
+                const lowRatingSection = document.getElementById('low-rating-section');
+                const finalThanksSection = document.getElementById('final-thanks-section');
+
+                ratingSection.classList.add('hidden');
+                if (rating >= 4) {
+                    finalThanksSection.classList.remove('hidden');
+                } else {
+                    lowRatingSection.classList.remove('hidden');
+                }
+            }
+
+            window.handleLowRatingChoice = () => {
+                // ... (Low rating logic remains the same)
+                document.getElementById('low-rating-section').classList.add('hidden');
+                document.getElementById('final-thanks-section').classList.remove('hidden');
+                document.getElementById('final-message-section').classList.add('hidden');
+                document.getElementById('final-title').textContent = "Awesome, thank you!";
+            }
+            
+            document.getElementById('show-resources-btn').addEventListener('click', () => {
+                document.getElementById('resources-section').classList.toggle('hidden');
+            });
+
+            showScreen('welcome');
+            setMascotExpression('neutral');
+        });
+    </script>
+</body>
+</html>
+
